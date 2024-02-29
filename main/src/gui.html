@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gain plugin</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .corner-resize {
+      position: absolute;
+      z-index: 2;
+      bottom: 0;
+      right: 0;
+      width: 2rem;
+      height: 2rem;
+      cursor: nwse-resize;
+    }
+
+    .corner-resize svg {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+
+  <!-- <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" /> -->
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+
+  <link href="full.min.css" rel="stylesheet" type="text/css" />
+  <script src="tailwind-script-3.4.1.js"></script>
+
+</head>
+
+<body>
+
+  <div class="flex items-center">
+    Gain:
+    <input style="margin: 1rem;" class="range range-primary" id="gain-slider" type="range" min="0" max="1"
+      step="0.01" />
+  </div>
+
+  <div class="flex items-center">
+    Length:
+    <input style="margin: 1rem;" class="range range-primary" id="length-slider" type="range" min="0" max="4"
+      step="0.01" />
+  </div>
+
+  <div class="flex items-center">
+    Pow:
+    <input style="margin: 1rem;" class="range range-primary" id="pow-slider" type="range" min="0" max="20"
+      step="0.01" />
+  </div>
+
+  <div class="flex items-center">
+    Amount:
+    <input style="margin: 1rem;" class="range range-primary" id="amount-slider" type="range" min="0" max="1"
+      step="0.01" />
+  </div>
+  <span class="value-display"></span>
+
+  <div class="corner-resize">
+    <svg viewBox="0 0 10 10" width="10" height="10">
+      <path d="M 10 0 L 10 10 L 0 10 Z" fill="#ccc" />
+    </svg>
+  </div>
+
+  <pre>
+
+  </pre>
+
+  <script>
+    let size = { width: 0, height: 0 };
+    const gainSlider = document.querySelector("#gain-slider");
+    const lengthSlider = document.querySelector("#length-slider");
+    const powSlider = document.querySelector("#pow-slider");
+    const amountSlider = document.querySelector("#amount-slider");
+
+    gainSlider.addEventListener('input', e => {
+      e.preventDefault();
+      console.log(e.target.value);
+      sendToPlugin({ type: 'SetGain', value: Number(e.target.value) });
+    });
+
+    lengthSlider.addEventListener('input', e => {
+      e.preventDefault();
+      console.log(e.target.value);
+      sendToPlugin({ type: 'SetLength', value: Number(e.target.value) });
+    });
+
+    powSlider.addEventListener('input', e => {
+      e.preventDefault();
+      console.log(e.target.value);
+      sendToPlugin({ type: 'SetPow', value: Number(e.target.value) });
+    });
+
+    amountSlider.addEventListener('input', e => {
+      e.preventDefault();
+      console.log(e.target.value);
+      sendToPlugin({ type: 'SetAmount', value: Number(e.target.value) });
+    });
+
+    window.onPluginMessage = msg => {
+      switch (msg.type) {
+        case 'param_change': {
+          gainSlider.value = msg.value;
+          document.querySelector('.value-display').textContent = msg.text;
+          break;
+        }
+        case 'set_size': {
+          size.width = msg.width;
+          size.height = msg.height;
+          break;
+        }
+      }
+    };
+
+    let cornerResizeMouseDown = false;
+    let startPos = { x: 0, y: 0 };
+    let startSize = { ...size };
+
+    document.querySelector('.corner-resize').addEventListener('mousedown', e => {
+      cornerResizeMouseDown = true;
+      startPos.x = e.clientX;
+      startPos.y = e.clientY;
+      startSize = { ...size };
+    });
+
+    window.addEventListener('mouseup', () => {
+      cornerResizeMouseDown = false;
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (cornerResizeMouseDown) {
+        const deltaX = e.clientX - startPos.x;
+        const deltaY = e.clientY - startPos.y;
+        const width = Math.max(100, startSize.width + deltaX);
+        const height = Math.max(100, startSize.height + deltaY);
+        size.width = width;
+        size.height = height;
+        sendToPlugin({ type: 'SetSize', width, height });
+      }
+    });
+
+    const log = document.querySelector('pre');
+    let n = 0;
+    window.addEventListener('keydown', e => {
+      log.textContent = `keydown: ${e.key} (${n++})`;
+    });
+
+    window.addEventListener('keyup', e => {
+      log.textContent = `keyup: ${e.key} (${n++})`;
+    });
+
+    sendToPlugin({ type: 'Init' });
+    sendToPlugin({ type: 'SetSize', width: 400, height: 400 });
+  </script>
+</body>
+
+</html>
